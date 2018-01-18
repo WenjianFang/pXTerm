@@ -1,0 +1,2 @@
+# pXTerm
+light ssh terminal
