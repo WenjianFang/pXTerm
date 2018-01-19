@@ -1,5 +1,6 @@
 import paramiko
 
+class pXTermSSH
 ip = ""
 port = 22
 user = "root"
