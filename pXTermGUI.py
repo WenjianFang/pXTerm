@@ -1,13 +1,14 @@
 #!/bin/python
 """
-Hello World, but with more meat.
+Hello World, pXTerm version 1.0
+FangWenjian, fwjse1992@gmail.com
 """
 
 import wx
 
 class pXTermFrame(wx.Frame):
     """
-    A Frame that says Hello World
+    Major Frame of pXTerm
     """
 
     def __init__(self, *args, **kw):
@@ -17,19 +18,12 @@ class pXTermFrame(wx.Frame):
         # create a panel in the frame
         pnl = wx.Panel(self)
 
-        # and put some text with a larger bold font on it
-        st = wx.StaticText(pnl, label="Hello World!", pos=(25,25))
-        font = st.GetFont()
-        font.PointSize += 10
-        font = font.Bold()
-        st.SetFont(font)
-
         # create a menu bar
         self.makeMenuBar()
 
         # and a status bar
         self.CreateStatusBar()
-        self.SetStatusText("Welcome to wxPython!")
+        self.SetStatusText("Welcome to pXTerm version 1.0")
 
 
     def makeMenuBar(self):
@@ -39,8 +33,8 @@ class pXTermFrame(wx.Frame):
         when the menu item is selected.
         """
 
-        # Make a file menu with Hello and Exit items
-        fileMenu = wx.Menu()
+        # Make a session menu with new session and exist session items
+        sessionMenu = wx.Menu()
         # The "\t..." syntax defines an accelerator key that also triggers
         # the same event
         helloItem = fileMenu.Append(-1, "&Hello...\tCtrl-H",
