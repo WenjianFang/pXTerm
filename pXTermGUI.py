@@ -37,12 +37,17 @@ class pXTermFrame(wx.Frame):
         sessionMenu = wx.Menu()
         # The "\t..." syntax defines an accelerator key that also triggers
         # the same event
-        helloItem = fileMenu.Append(-1, "&Hello...\tCtrl-H",
-                "Help string shown in status bar for this menu item")
-        fileMenu.AppendSeparator()
+        newSessionItem = sessionMenu.Append(-1, "&New Session...\tCtrl-N",
+                "Create new session")
+        sessionMenu.AppendSeparator()
+
+        connectExistSessionItem = sessionMenu.Append(-1, "&Connect Session...\tCtrl-C",
+                "Connect exist new session")
+        sessionMenu.AppendSeparator()
+
         # When using a stock ID we don't need to specify the menu item's
         # label
-        exitItem = fileMenu.Append(wx.ID_EXIT)
+        exitItem = sessionMenu.Append(wx.ID_EXIT)
 
         # Now a help menu for the about item
         helpMenu = wx.Menu()
@@ -53,7 +58,7 @@ class pXTermFrame(wx.Frame):
         # platforms that support it those letters are underlined and can be
         # triggered from the keyboard.
         menuBar = wx.MenuBar()
-        menuBar.Append(fileMenu, "&File")
+        menuBar.Append(sessionMenu, "&Session")
         menuBar.Append(helpMenu, "&Help")
 
         # Give the menu bar to the frame
@@ -62,7 +67,8 @@ class pXTermFrame(wx.Frame):
         # Finally, associate a handler function with the EVT_MENU event for
         # each of the menu items. That means that when that menu item is
         # activated then the associated handler function will be called.
-        self.Bind(wx.EVT_MENU, self.OnHello, helloItem)
+        self.Bind(wx.EVT_MENU, self.OnNewSession, newSessionItem)
+        self.Bind(wx.EVT_MENU, self.OnConnectSession, connectExistSessionItem)
         self.Bind(wx.EVT_MENU, self.OnExit,  exitItem)
         self.Bind(wx.EVT_MENU, self.OnAbout, aboutItem)
 
@@ -72,15 +78,28 @@ class pXTermFrame(wx.Frame):
         self.Close(True)
 
 
-    def OnHello(self, event):
-        """Say hello to the user."""
-        wx.MessageBox("Hello again from wxPython")
+    def OnConnectSession(self, event):
+        """connect exist session."""
+        wx.MessageBox("This is connect session")
+        # new window and shows exist session with item,
+        # then click the item to connect related session
+
+        # this item can extend items, and click to connect exist session
+
+    def OnNewSession(self, event):
+        """create new session and then connect to this session."""
+        #wx.MessageBox("This is new session")
+        newSessionFrame = wx.Frame(self, title="Create New Session")
+        newSessionFrame.Show(True)
+        #new window to create a new session
+        # then connec to this session
 
 
     def OnAbout(self, event):
         """Display an About Dialog"""
-        wx.MessageBox("This is a wxPython Hello World sample",
-                      "About Hello World 2",
+        wx.MessageBox("This is a light weight python X Terminal version 1.0.\n"
+                      "Author: FangWenjian/2018.01.22 ",
+                      "About pXTerm",
                       wx.OK|wx.ICON_INFORMATION)
 
 
