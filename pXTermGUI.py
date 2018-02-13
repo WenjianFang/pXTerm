@@ -9,77 +9,58 @@ import sys
 import logging
 
 from pXTermCONFIG import pXTermCONFIG
+from pXTermSSH import pXTermSSH
 
 logger = logging.getLogger('pXTermGUI')
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
 
-configs = pXTermCONFIG('sessions')
-
 class pXTermFrame(wx.Frame):
     """
     Major Frame of pXTerm
     """
-
     def __init__(self, *args, **kw):
         # ensure the parent's __init__ is called
         super(pXTermFrame, self).__init__(*args, **kw)
 
-        # create a menu bar
-        # Make a session menu with new session and exist session items
         self.sessionMenu = wx.Menu()
-        # The "\t..." syntax defines an accelerator key that also triggers
-        # the same event
         self.newSessionItem = self.sessionMenu.Append(wx.ID_ANY, "&New Session")
-
-        self.connectExistSessionItem = self.sessionMenu.Append(wx.ID_ANY, "&Connect Session")
-
-        # When using a stock ID we don't need to specify the menu item's
-        # label
         self.exitItem = self.sessionMenu.Append(wx.ID_EXIT)
 
-        # Now a help menu for the about item
         self.helpMenu = wx.Menu()
         self.aboutItem = self.helpMenu.Append(wx.ID_ABOUT)
 
-        # Make the menu bar and add the two menus to it. The '&' defines
-        # that the next letter is the "mnemonic" for the menu item. On the
-        # platforms that support it those letters are underlined and can be
-        # triggered from the keyboard.
         self.menuBar = wx.MenuBar()
         self.menuBar.Append(self.sessionMenu, "&Session")
         self.menuBar.Append(self.helpMenu, "&Help")
 
-        # Give the menu bar to the frame
         self.SetMenuBar(self.menuBar)
 
-        # Finally, associate a handler function with the EVT_MENU event for
-        # each of the menu items. That means that when that menu item is
-        # activated then the associated handler function will be called.
         self.Bind(wx.EVT_MENU, self.OnNewSession, self.newSessionItem)
-        self.Bind(wx.EVT_MENU, self.OnConnectExistSession, self.connectExistSessionItem)
         self.Bind(wx.EVT_MENU, self.OnExit, self.exitItem)
         self.Bind(wx.EVT_MENU, self.OnAbout, self.aboutItem)
 
-        # and a status bar
         self.CreateStatusBar()
         self.SetStatusText("Welcome to pXTerm version 1.0")
+
+        mainSizer = wx.BoxSizer(wx.VERTICAL)
+        grid = wx.GridBagSizer(hgap=5, vgap=5)
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.sessionName = ""
+        self.existSessionPanel = ExistSessionPanel(self)
+        grid.Add(self.existSessionPanel, pos=(0,0))
+        self.nb = wx.Notebook(self)
+        grid.Add(self.nb, pos=(1,0))
+
+
+        hSizer.Add(grid, 0, wx.ALL, 5)
+        mainSizer.Add(hSizer, 0, wx.ALL, 5)
+        self.SetSizerAndFit(mainSizer)
 
     def OnExit(self, event):
         """Close the frame, terminating the application."""
         self.Close(True)
-
-
-    def OnConnectExistSession(self, event):
-        existSessionFrame = wx.Frame(self, title='Connect to Exist Session')
-
-        ExistSessionPanel(existSessionFrame)
-
-        existSessionFrame.Show(True)
-        # new window and shows exist session with item,
-        # then click the item to connect related session
-
-        # this item can extend items, and click to connect exist session
 
     def OnNewSession(self, event):
         """create new session and then connect to this session."""
@@ -99,10 +80,19 @@ class pXTermFrame(wx.Frame):
                       "About pXTerm",
                       wx.OK|wx.ICON_INFORMATION)
 
+    def OnConnect(self, sessionName):
+        session = configs.get_config_by_session_name(self.sessionName)
+
+        connectedSession = ConnectedSessionPanel(pxterm.nb)
+        pxterm.nb.AddPage(connectedSession, self.sessionName)
+        logger.info(session)
+
+        sshs.connect_session(connectedSession, session[1], session[3], session[4], int(session[2]))
+
 class NewSessionPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-
+        self.parent = parent
         # create some sizers
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         grid = wx.GridBagSizer(hgap=5, vgap=5)
@@ -167,14 +157,17 @@ class NewSessionPanel(wx.Panel):
         logger.info("session login account: " + slogin)
         logger.info("session login password: " + spass)
         session = [sn, sip, sport, slogin, spass]
-        configs.write_config(session)
-
-        wx.MessageBox("Save the new session", "New Session", wx.OK|wx.ICON_INFORMATION)
+        if(configs.write_config(session) == True):
+            wx.MessageBox("Save the new session", "New Session", wx.OK|wx.ICON_INFORMATION)
+            self.parent.Close(True)
+        else:
+            wx.MessageBox("The session name Exist, please check", "New Session",
+                          wx.OK | wx.ICON_INFORMATION)
 
 class ExistSessionPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-
+        self.parent = parent
         # create some sizers
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         grid = wx.GridBagSizer(hgap=5, vgap=5)
@@ -188,9 +181,9 @@ class ExistSessionPanel(wx.Panel):
         sessionList = []
         for name in self.sessionsName:
             session = configs.get_config_by_session_name(name)
-            sessionList.append((session[0] + '\t' + session[1]))
+            sessionList.append((session[0] + '[' + session[1]) + ']')
 
-        self.sessionListBox = wx.ListBox(self, wx.ID_ANY, choices=sessionList, style=wx.LB_SINGLE)
+        self.sessionListBox = wx.ListBox(self, wx.ID_ANY, size=self.GetMaxSize(), choices=sessionList, style=wx.LB_SINGLE)
         self.Bind(wx.EVT_LISTBOX_DCLICK, self.ConnectSession, self.sessionListBox)
 
         grid.Add(self.sessionListBox, pos=(1,0))
@@ -201,11 +194,26 @@ class ExistSessionPanel(wx.Panel):
 
     def ConnectSession(self, event):
         logger.info("session: " + event.GetEventObject().GetStringSelection())
+        sessionName = (event.GetEventObject().GetStringSelection()).split('[')[0]
+        logger.info("session name: "+sessionName)
+        pxterm.sessionName = sessionName
+
+        logger.info("pxterm session name: " + pxterm.sessionName)
+        pxterm.OnConnect(pxterm.sessionName)
+
+class ConnectedSessionPanel(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        #sshs.connect_session(session[1], session[3], session[4], int(session[2]))
+
 
 if __name__ == '__main__':
     # When this module is run (not imported) then create the app, the
     # frame, show it, and start the event loop.
     app = wx.App()
+    configs = pXTermCONFIG('sessions')
+    sshs = pXTermSSH()
     pxterm = pXTermFrame(None, title='pXTerm version 1.0')
+
     pxterm.Show()
     app.MainLoop()

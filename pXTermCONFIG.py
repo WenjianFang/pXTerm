@@ -12,6 +12,11 @@ class pXTermCONFIG:
         return ss
 
     def write_config(self, session):
+        ss = self.dump_configs()
+        for s in ss:
+            if s.split(' ')[0] == session[0]:
+                return False
+
         sessionString = ''
         with open(self.configs, 'ab+') as sessionFile:
             for i in range(0, len(session)):
@@ -20,6 +25,7 @@ class pXTermCONFIG:
                 else:
                     sessionString = sessionString + session[i] + '\n'
             sessionFile.write(sessionString)
+        return True
 
     def get_config_by_session_name(self, sessionName):
         ss = self.dump_configs()
